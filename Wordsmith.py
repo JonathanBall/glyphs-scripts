@@ -5,8 +5,9 @@ __doc__ = """
 Script to generate random strings from a provided set of glyphs.
 """
 
-import random
+import AppKit
 import vanilla
+import random
 
 
 class Main(object):
@@ -21,10 +22,10 @@ class Main(object):
         childPos = Position(self.padding, self.padding)
         
         inputSize = Size(250, 22)
-        buttonSize = Size(80, 20)
+        buttonSize = Size(100, 20)
         outputSize = Size(
             inputSize.width + self.spacing + buttonSize.width, 
-            300
+            200
         )
 
         # Create Input
@@ -32,7 +33,7 @@ class Main(object):
             (childPos.x, childPos.y, inputSize.width, inputSize.height), 
             text=self.inputCharacters,
             placeholder="Enter characters",
-            callback=self.onInputTextChanged
+            callback=self.onInputChanged
         )
         self.add(
             "inputBox", 
@@ -56,15 +57,32 @@ class Main(object):
             isIncrementY=True, 
             isResetX=True
         )
-        self.window.setDefaultButton(submitButton)
+        # self.window.setDefaultButton(submitButton)
         self.window.submitButton.enable(len(self.inputCharacters) > 0)
 
         # Create Output
         outputBox = vanilla.TextEditor(
             (childPos.x, childPos.y, outputSize.width, outputSize.height),
-            readOnly=True
+            readOnly=True,
+            callback=self.onOutputChanged
         )
-        self.add("outputBox", outputBox, self.window, childPos)
+        self.add("outputBox", outputBox, self.window, childPos, isIncrementY=True)
+
+        # Create Copy Button
+        copyButton = vanilla.Button(
+            (childPos.x, childPos.y, buttonSize.width, buttonSize.height), 
+            title="Copy",
+            callback=self.onCopy
+        )
+        self.add(
+            "copyButton", 
+            copyButton, 
+            self.window, 
+            childPos, 
+            isIncrementX=True, 
+            isResetX=True
+        )
+        self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
 
         elements = [
             HStack(
@@ -75,6 +93,7 @@ class Main(object):
                 self.spacing
             ),
             HStack([outputBox], self.spacing),
+            HStack([copyButton], self.spacing),
         ]
         self.layout = VStack(elements, self.spacing)
 
@@ -127,9 +146,17 @@ class Main(object):
         words = dictionary.getWords(self.inputCharacters)
         self.window.outputBox.set(words)
 
-    def onInputTextChanged(self, sender):
+        self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
+
+    def onCopy(self, sender):
+        pass
+
+    def onInputChanged(self, sender):
         self.inputCharacters = self.window.inputBox.get()
         self.window.submitButton.enable(len(self.inputCharacters) > 0)
+
+    def onOutputChanged(self, sender):
+        self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
 
 
 class Stack:
@@ -232,8 +259,9 @@ class Dictionary(object):
 
     def __getWordsOfCharacters(self, characters, words):
         result = set()
+        charactersLower = [c.lower() for c in characters]
         for word in words:
-            if set(word).issubset(set(characters)):
+            if set(word).issubset(set(charactersLower)):
                 result.add(word)
         return result
 
