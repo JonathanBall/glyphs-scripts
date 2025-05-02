@@ -5,7 +5,6 @@ __doc__ = """
 Script to generate random strings from a provided set of glyphs.
 """
 
-import AppKit
 import vanilla
 import random
 import subprocess
@@ -14,212 +13,73 @@ import subprocess
 class Main(object):
 
     def __init__(self):
-        self.window = vanilla.FloatingWindow((0, 0), "Wordsmith")
-        self.inputCharacters = ""
+        self.window = vanilla.FloatingWindow((400, 300), "Wordsmith")
 
         self.padding = 18
         self.spacing = 10
-        
-        childPos = Position(self.padding, self.padding)
-        
-        inputSize = Size(250, 22)
-        buttonSize = Size(100, 20)
-        outputSize = Size(
-            inputSize.width + self.spacing + buttonSize.width, 
-            200
-        )
 
-        # Create Input
-        inputBox = vanilla.EditText(
-            (childPos.x, childPos.y, inputSize.width, inputSize.height), 
-            text=self.inputCharacters,
+        self.submitButton = vanilla.Button("auto", "Submit", callback=self.onSubmit)
+        self.copyButton = vanilla.Button("auto", "Copy", callback=self.onCopy)
+        self.inputBox = vanilla.EditText(
+            "auto",
             placeholder="Enter characters",
             callback=self.onInputChanged
         )
-        self.add(
-            "inputBox", 
-            inputBox, 
-            self.window, 
-            childPos, 
-            isIncrementX=True
-        )
-
-        # Create Submit Button
-        submitButton = vanilla.Button(
-            (childPos.x, childPos.y, buttonSize.width, buttonSize.height), 
-            title="Submit", 
-            callback=self.onSubmit
-        )
-        self.add(
-            "submitButton", 
-            submitButton, 
-            self.window, 
-            childPos, 
-            isIncrementY=True, 
-            isResetX=True
-        )
-        # self.window.setDefaultButton(submitButton)
-        self.window.submitButton.enable(len(self.inputCharacters) > 0)
-
-        # Create Output
-        outputBox = vanilla.TextEditor(
-            (childPos.x, childPos.y, outputSize.width, outputSize.height),
+        self.outputBox = vanilla.TextEditor(
+            "auto",
             readOnly=True,
             callback=self.onOutputChanged
         )
-        self.add("outputBox", outputBox, self.window, childPos, isIncrementY=True)
-
-        # Create Copy Button
-        copyButton = vanilla.Button(
-            (childPos.x, childPos.y, buttonSize.width, buttonSize.height), 
-            title="Copy",
-            callback=self.onCopy
+        self.inputRegion = vanilla.HorizontalStackView(
+            "auto",
+            views=[
+                dict(view=self.inputBox, width="fill", height="fit"),
+                dict(view=self.submitButton, width="fill", height="fit"),
+            ],
+            spacing=self.spacing
         )
-        self.add(
-            "copyButton", 
-            copyButton, 
-            self.window, 
-            childPos, 
-            isIncrementX=True, 
-            isResetX=True
+
+        self.window.layout = vanilla.VerticalStackView(
+            (0, 0, 0, 0),
+            views=[
+                dict(view=self.inputRegion, width="fill", height="fit"),
+                dict(view=self.outputBox, width="fill", height="fill"),
+                dict(view=self.copyButton, width="fit", height="fit"),
+            ],
+            spacing=self.spacing,
+            edgeInsets=(self.padding, self.padding, self.padding, self.padding),
+            distribution="fillProportionally"
         )
-        self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
 
-        elements = [
-            HStack(
-                [
-                    inputBox, 
-                    submitButton
-                ], 
-                self.spacing
-            ),
-            HStack([outputBox], self.spacing),
-            HStack([copyButton], self.spacing),
-        ]
-        self.layout = VStack(elements, self.spacing)
-
-        self.updateWindowSize()
+        self.submitButton.enable(len(self.inputBox.get()) > 0)
 
         self.window.center()
         self.window.open()
         self.window.makeKey()
         self.window.bind("resize", self.onWindowResized)
 
-    def add(
-        self, 
-        name, 
-        element, 
-        window, 
-        position, 
-        isIncrementX=False, 
-        isIncrementY=False,
-        isResetX=False,
-        isResetY=False
-    ):
-        setattr(window, name, element)
-
-        if isIncrementX:
-            position.x += element.getPosSize()[2] + self.spacing
-        if isIncrementY:
-            position.y += element.getPosSize()[3] + self.spacing
-        if isResetX:
-            position.x = self.padding
-        if isResetY:
-            position.y = self.padding
-
-    def updateWindowSize(self):
-        size = self.layout.size()
-        size.width += self.padding * 2
-        size.height += self.padding * 2
-        self.window.resize(size.width, size.height)
-
     def onWindowResized(self, sender):
         pass
 
-    def onCancel(self, sender):
-        self.window.close()
-
     def onSubmit(self, sender):
-        if len(self.inputCharacters) <= 0:
+        if len(self.inputBox.get()) <= 0:
             return
 
         dictionary = Dictionary()
-        words = dictionary.getWords(self.inputCharacters)
-        self.window.outputBox.set(words)
-
-        self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
+        words = dictionary.getWords(self.inputBox.get())
+        self.outputBox.set(words)
 
     def onCopy(self, sender):
-        self.writeToClipboard(self.window.outputBox.get())
-
-    def onInputChanged(self, sender):
-        self.inputCharacters = self.window.inputBox.get()
-        self.window.submitButton.enable(len(self.inputCharacters) > 0)
-
-    def onOutputChanged(self, sender):
-        self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
-
-    def writeToClipboard(self, output):
+        output = self.outputBox.get()
         process = subprocess.Popen(
             'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
         process.communicate(output.encode('utf-8'))
 
+    def onInputChanged(self, sender):
+        self.submitButton.enable(len(self.inputBox.get()) > 0)
 
-class Stack:
-
-    def __init__(self, elements, spacing):
-        self.elements = elements
-        self.spacing = spacing
-
-    def size(self):
-        pass
-
-    def elementsSizes(self):
-        return list(map(lambda e: self.__elementSize(e), self.elements))
-
-    def elementsSpacing(self):
-        return self.spacing * (len(self.elements)-1)
-
-    def __elementSize(self, element):
-        if isinstance(element, Stack):
-            return element.size()
-        else: 
-            return Size(element.getPosSize()[2], element.getPosSize()[3])
-
-
-class HStack(Stack):
-    
-    def size(self):
-        sizes = self.elementsSizes()
-        widths = list(map(lambda e: e.width, sizes))
-        width = sum(widths) + self.elementsSpacing()
-        height = max(list(map(lambda e: e.height, sizes)))
-        return Size(width, height)
-
-
-class VStack(Stack):
-
-    def size(self):
-        sizes = self.elementsSizes()
-        width = max(list(map(lambda e: e.width, sizes)))
-        heights = list(map(lambda e: e.height, sizes))
-        height = sum(heights) + self.elementsSpacing()
-        return Size(width, height)
-
-
-class Position(object):
-
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-
-class Size(object):
-
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.size = (width, height)
+    def onOutputChanged(self, sender):
+        self.copyButton.enable(len(self.outputBox.get()) > 0)
 
 
 class Dictionary(object):
