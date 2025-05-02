@@ -8,6 +8,7 @@ Script to generate random strings from a provided set of glyphs.
 import AppKit
 import vanilla
 import random
+import subprocess
 
 
 class Main(object):
@@ -149,7 +150,7 @@ class Main(object):
         self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
 
     def onCopy(self, sender):
-        pass
+        self.writeToClipboard(self.window.outputBox.get())
 
     def onInputChanged(self, sender):
         self.inputCharacters = self.window.inputBox.get()
@@ -157,6 +158,11 @@ class Main(object):
 
     def onOutputChanged(self, sender):
         self.window.copyButton.enable(len(self.window.outputBox.get()) > 0)
+
+    def writeToClipboard(self, output):
+        process = subprocess.Popen(
+            'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
+        process.communicate(output.encode('utf-8'))
 
 
 class Stack:
