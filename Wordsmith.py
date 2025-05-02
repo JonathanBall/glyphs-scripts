@@ -7,7 +7,6 @@ Script to generate random strings from a provided set of glyphs.
 
 import random
 import vanilla
-from enum import Enum
 
 
 class Main(object):
@@ -35,7 +34,13 @@ class Main(object):
             placeholder="Enter characters",
             callback=self.onInputTextChanged
         )
-        self.add("inputBox", inputBox, self.window, childPos, isIncrementX=True)
+        self.add(
+            "inputBox", 
+            inputBox, 
+            self.window, 
+            childPos, 
+            isIncrementX=True
+        )
 
         # Create Submit Button
         submitButton = vanilla.Button(
@@ -43,7 +48,14 @@ class Main(object):
             title="Submit", 
             callback=self.onSubmit
         )
-        self.add("submitButton", submitButton, self.window, childPos, isIncrementY=True, isResetX=True)
+        self.add(
+            "submitButton", 
+            submitButton, 
+            self.window, 
+            childPos, 
+            isIncrementY=True, 
+            isResetX=True
+        )
         self.window.setDefaultButton(submitButton)
         self.window.submitButton.enable(len(self.inputCharacters) > 0)
 
@@ -135,16 +147,19 @@ class Stack:
     def elementsSpacing(self):
         return self.spacing * (len(self.elements)-1)
 
-    def __elementSize(self, e):
-        isStack = isinstance(e, Stack)
-        return e.size() if isStack else Size(e.getPosSize()[2], e.getPosSize()[3])
+    def __elementSize(self, element):
+        if isinstance(element, Stack):
+            return element.size()
+        else: 
+            return Size(element.getPosSize()[2], element.getPosSize()[3])
 
 
 class HStack(Stack):
     
     def size(self):
         sizes = self.elementsSizes()
-        width = sum(list(map(lambda e: e.width, sizes))) + self.elementsSpacing()
+        widths = list(map(lambda e: e.width, sizes))
+        width = sum(widths) + self.elementsSpacing()
         height = max(list(map(lambda e: e.height, sizes)))
         return Size(width, height)
 
@@ -154,7 +169,8 @@ class VStack(Stack):
     def size(self):
         sizes = self.elementsSizes()
         width = max(list(map(lambda e: e.width, sizes)))
-        height = sum(list(map(lambda e: e.height, sizes))) + self.elementsSpacing()
+        heights = list(map(lambda e: e.height, sizes))
+        height = sum(heights) + self.elementsSpacing()
         return Size(width, height)
 
 
@@ -249,20 +265,8 @@ class Dictionary(object):
         lengths = sorted(list(self.__getWordsByLength(self.words).keys()))
         return lengths[len(lengths)-1]
 
-    def debugTest(self):
-        self.__debugPrint("3 LETTER", self.__getWordsOfLength(3))
-        self.__debugPrint("SHORT", self.__getWordsOfCharacters("abcdefgh"))
-        self.__debugPrint("LONG", self.__getWordsOfCharacters("abcdefghijklmnop"))
-
-    def __debugPrint(self, title, iterable):
-        print(title)
-        for element in iterable:
-            print(element)    
-        print("------------\n")
-
 
 dictionary = Dictionary()
 words = dictionary.getWords("abcdefghijklmnop")
-# print(words)
 
 Main()
