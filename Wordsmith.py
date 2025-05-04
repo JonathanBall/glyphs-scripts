@@ -12,7 +12,7 @@ from enum import Enum
 
 
 class Casing(Enum):
-    DEFAULT = "-"
+    # DEFAULT = "-"
     LOWER = "lower"
     UPPER = "UPPER"
     TITLE = "Title"
@@ -22,40 +22,10 @@ class Main(object):
 
     def __init__(self):
         self.words = ""
-        self.window = vanilla.FloatingWindow((500, 300), "Wordsmith")
+        self.window = vanilla.FloatingWindow((400, 400), "Wordsmith")
 
         self.padding = 18
         self.spacing = 10
-
-        self.insertButton = vanilla.Button(
-            "auto", 
-            "Insert abc", 
-            callback=self.onInsert, 
-            sizeStyle="small"
-        )
-        self.casingLabel = vanilla.TextBox("auto", "Change Casing", alignment="left")
-        self.casingPopUp = vanilla.PopUpButton(
-            "auto", 
-            [c.value for c in Casing],
-            callback=self.onCasingSelect,
-            sizeStyle="small"
-        )
-        self.casingOption = vanilla.HorizontalStackView(
-            "auto",
-            views=[
-                dict(view=self.casingLabel, width="fill"),
-                dict(view=self.casingPopUp),
-            ],
-            spacing=self.spacing * 0.5
-        )
-        self.optionsRegion = vanilla.HorizontalStackView(
-            "auto",
-            views=[
-                dict(view=self.casingOption),
-                dict(view=self.insertButton),
-            ],
-            spacing=self.spacing
-        )
 
         self.inputBox = vanilla.EditText(
             "auto",
@@ -63,14 +33,41 @@ class Main(object):
             placeholder="Enter characters",
             callback=self.onInputChanged
         )
-        self.submitButton = vanilla.Button("auto", "Submit", callback=self.onSubmit)
-        self.inputRegion = vanilla.HorizontalStackView(
+        menuItems = [
+            dict(title='Insert "abc"', callback=self.onInsertLowerABC),
+        ]
+        self.insertMenuButton = vanilla.ActionButton("auto", menuItems)
+        self.inputStack = vanilla.HorizontalStackView(
             "auto",
             views=[
                 dict(view=self.inputBox, width="fill"),
-                dict(view=self.submitButton),
+                dict(view=self.insertMenuButton),
             ],
             spacing=self.spacing
+        )
+        self.submitButton = vanilla.Button("auto", "Get Dummy Text", callback=self.onSubmit)
+        self.inputRegion = vanilla.VerticalStackView(
+            "auto",
+            views=[
+                dict(view=self.inputStack, width="fill"),
+                dict(view=self.submitButton, width="fill"),
+            ],
+            spacing=self.spacing
+        )
+        self.window.setDefaultButton(self.submitButton)
+
+        self.casingOptions = vanilla.SegmentedButton(
+            "auto",
+            [dict(title=c.value) for c in Casing],
+            selectionStyle="one",
+            callback=self.onCasingSelect
+        )
+        self.casingOptions.set(0)
+
+        self.outputBox = vanilla.TextEditor(
+            "auto",
+            readOnly=True,
+            callback=self.onOutputChanged
         )
 
         self.copyButton = vanilla.Button("auto", "Copy", callback=self.onCopy)
@@ -84,19 +81,13 @@ class Main(object):
             spacing=self.spacing
         )
 
-        self.outputBox = vanilla.TextEditor(
-            "auto",
-            readOnly=True,
-            callback=self.onOutputChanged
-        )
-
         self.window.layout = vanilla.VerticalStackView(
             (0,) * 4,
             views=[
                 dict(view=self.inputRegion, width="fill", height="fit"),
+                dict(view=self.submitButton, width="fill", height="fit"),
                 dict(view=vanilla.HorizontalLine("auto"), width="fill", height="fit"),
-                dict(view=self.optionsRegion, width="fill", height="fit"),
-                dict(view=vanilla.HorizontalLine("auto"), width="fill", height="fit"),
+                dict(view=self.casingOptions, width="fill", height="fit"),
                 dict(view=self.outputBox, width="fill", height="fill"),
                 dict(view=self.actionsRegion),
             ],
@@ -134,7 +125,7 @@ class Main(object):
         self.__updateWords()
         self.__updateOutputBox()
 
-    def onInsert(self, sender):
+    def onInsertLowerABC(self, sender):
         self.inputBox.set("abcdefghijklmnopqrstuvwxyz")
         self.__updateSubmitButtonsState()
 
@@ -148,6 +139,14 @@ class Main(object):
         Glyphs.currentDocument.font.newTab(self.outputBox.get())
 
     def onInputChanged(self, sender):
+        characters = self.inputBox.get()
+        if characters.islower():
+            self.casingOptions.set(0)
+        elif characters.isupper():
+            self.casingOptions.set(1)
+        elif characters.istitle():
+            self.casingOptions.set(2)
+
         self.__updateSubmitButtonsState()
 
     def onOutputChanged(self, sender):
@@ -163,15 +162,14 @@ class Main(object):
         self.__updateActionButtonsState()
 
     def __getWordsCasing(self, words) -> str:
-        casingIndex = self.casingPopUp.get()
-        casing = self.casingPopUp.getItems()[casingIndex]
+        casing = self.casingOptions.get()
 
         match casing:
-            case Casing.LOWER.value:
+            case 0:
                 words = words.lower()
-            case Casing.UPPER.value:
+            case 1:
                 words = words.upper()
-            case Casing.TITLE.value:
+            case 2:
                 words = words.title()
             case _:
                 words = words.lower()
